@@ -1,24 +1,14 @@
+#define CL_HPP_ENABLE_EXCEPTIONS
 #include <CL/opencl.hpp>
+#include <cstdio>
+#include <cerrno>
 import Window;
 
 using namespace cl;
 
 #define EXIT() { Exit(); return; }
-#define CHECK_EC() if (CheckEc(ec, __LINE__)) return
-inline const char* clGetErrorString(cl_int ec);
-inline bool CheckEc(cl_int ec, int ln)
-{
-	if (ec)
-	{
-		printf("opencl error at line %i: %s\n", ln, clGetErrorString(ec));
-		Exit();
-		return true;
-	}
+inline const char *clGetErrorString(cl_int ec);
 
-	return false;
-}
-
-cl_int ec;
 Platform platform;
 Device device;
 Context ctx;
@@ -27,56 +17,77 @@ Program prog;
 Buffer strMem;
 Kernel kernel;
 
+string src;
+
+string GetSrc(const char *file)
+{
+	FILE *fs;
+	if (errno_t err = fopen_s(&fs, "Shaders.cl", "rb"))
+	{
+		char msg[69];
+		if (strerror_s(msg, err))
+			printf("can't open 'Shaders.cl': %s\n", msg);
+		else
+			printf("can't open 'Shaders.cl'");
+		return string {};
+	}
+
+	fseek(fs, 0, SEEK_END);
+	string src(ftell(fs), '\x69');
+	rewind(fs);
+	fread(src.data(), 1, src.length(), fs);
+
+	return std::move(src);
+}
+
 void Init()
 {
-	ec = Platform::get(&platform);
-	CHECK_EC();
-	vector<Device> devices;
-	ec = platform.getDevices(CL_DEVICE_TYPE_GPU, &devices);
-	CHECK_EC();
-
-	device = devices[0];
-	string deviceName = device.getInfo<CL_DEVICE_NAME>(&ec);
-	CHECK_EC();
-	printf("Using OpenCL Device '%s'\n", deviceName.c_str());
-
-	ctx = Context(device, nullptr, nullptr, nullptr, &ec);
-	CHECK_EC();
-
-	q = CommandQueue(ctx, device, QueueProperties::None, &ec);
-	CHECK_EC();
-
-	prog = Program(ctx, "__kernel void hello(__global char* string) { string[0] = 'H'; string[1] = 'e'; string[2] = 'l'; string[3] = 'l'; string[4] = 'o'; string[5] = ','; string[6] = ' '; string[7] = 'w'; string[8] = 'o'; string[9] = 'r'; string[10] = 'l'; string[11] = 'd'; string[12] = '!'; string[13] = '\\0'; }", false, &ec);
-	CHECK_EC();
-	ec = prog.build(device);
-	if (ec == CL_BUILD_PROGRAM_FAILURE)
+	try
 	{
-		BuildLogType log = prog.getBuildInfo<CL_PROGRAM_BUILD_LOG>(&ec);
-		CHECK_EC();
-		for (const auto& msg : log)
-			puts(msg.second.c_str());
-		EXIT();
+		Platform::get(&platform);
+		vector<Device> devices;
+		platform.getDevices(CL_DEVICE_TYPE_GPU, &devices);
+
+		device = devices[0];
+		string deviceName = device.getInfo<CL_DEVICE_NAME>();
+		printf("Using OpenCL Device '%s'\n", deviceName.c_str());
+
+		ctx = Context(device, nullptr, nullptr, nullptr);
+
+		q = CommandQueue(ctx, device, QueueProperties::None);
+
+		src = GetSrc("Shaders.cl");
+
+		prog = Program(ctx, src);
+		try
+		{
+			prog.build(device);
+		}
+		catch (const BuildError &e)
+		{
+			BuildLogType log = prog.getBuildInfo<CL_PROGRAM_BUILD_LOG>();
+			for (const auto &msg : log)
+				puts(msg.second.c_str());
+			EXIT();
+		}
+
+		char str[16] = { "does not work" };
+		strMem = Buffer(ctx, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, sizeof(str), str);
+
+		kernel = Kernel(prog, "hello");
+		kernel.setArg(0, strMem);
+
+		q.enqueueNDRangeKernel(kernel, NullRange, NDRange(1));
+
+		q.flush();
+		q.finish();
+
+		puts(str);
 	}
-	CHECK_EC();
-
-	kernel = Kernel(prog, "hello", &ec);
-	CHECK_EC();
-
-	char str[16] = { "does not work"};
-	strMem = Buffer(ctx, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, sizeof(str), str, &ec);
-	CHECK_EC();
-
-	ec = kernel.setArg(0, strMem);
-	CHECK_EC();
-
-	q.enqueueNDRangeKernel(kernel, NullRange, NDRange(1));
-
-	ec = q.flush();
-	CHECK_EC();
-	ec = q.finish();
-	CHECK_EC();
-
-	puts(str);
+	catch (const Error &e)
+	{
+		printf("opencl err %s(): %s", e.what(), clGetErrorString(e.err()));
+	}
 }
 
 void Draw()
