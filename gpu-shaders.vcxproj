@@ -57,6 +57,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <AdditionalIncludeDirectories>vendor\OpenCL-SDK\external\OpenCL-Headers;vendor\OpenCL-SDK\external\OpenCL-CLHPP\include;vendor\OpenCL-SDK\build\external\OpenCL-ICD-Loader\Release</AdditionalIncludeDirectories>
+      <EnableModules>true</EnableModules>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -74,6 +75,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <AdditionalIncludeDirectories>vendor\OpenCL-SDK\external\OpenCL-Headers;vendor\OpenCL-SDK\external\OpenCL-CLHPP\include;vendor\OpenCL-SDK\build\external\OpenCL-ICD-Loader\Release</AdditionalIncludeDirectories>
+      <EnableModules>true</EnableModules>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

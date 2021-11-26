@@ -1,9 +1,10 @@
 #pragma once
 
-#include <cassert>
-#include <cstring>
 #include <Windows.h>
+#include <cstring>
+#include <cassert>
 
+void Init();
 void Draw();
 
 HWND wnd;
@@ -60,6 +61,11 @@ void CheckMsg()
 	}
 }
 
+void Exit()
+{
+	CloseWindow(wnd);
+}
+
 int main()
 {
 	WNDCLASSEXW clazz = {
@@ -90,6 +96,9 @@ int main()
 	bmpDc = CreateCompatibleDC(dc);
 	assert(bmpDc);
 	SelectObject(bmpDc, bmp);
+
+	CheckMsg();
+	Init();
 
 	while (true)
 	{
