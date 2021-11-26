@@ -1,11 +1,11 @@
-export module Window;
-
 #include <Windows.h>
 #include <cstring>
 #include <cassert>
 
-void Init();
-void Draw();
+extern void Init();
+extern void Draw();
+
+export module Window;
 
 HWND wnd;
 
@@ -66,7 +66,7 @@ export void Exit()
 	CloseWindow(wnd);
 }
 
-int main()
+extern "C" int main()
 {
 	WNDCLASSEXW clazz = {
 		.cbSize = sizeof(WNDCLASSEXW),

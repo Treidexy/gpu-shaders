@@ -18,19 +18,64 @@ inline bool CheckEc(cl_int ec, int ln)
 	return false;
 }
 
+cl_int ec;
+Platform platform;
+Device device;
+Context ctx;
+CommandQueue q;
+Program prog;
+Buffer strMem;
+Kernel kernel;
+
 void Init()
 {
-	cl_int ec;
-	Platform platform;
 	ec = Platform::get(&platform);
 	CHECK_EC();
 	vector<Device> devices;
 	ec = platform.getDevices(CL_DEVICE_TYPE_GPU, &devices);
 	CHECK_EC();
 
-	Device device = devices[0];
+	device = devices[0];
+	string deviceName = device.getInfo<CL_DEVICE_NAME>(&ec);
+	CHECK_EC();
+	printf("Using OpenCL Device '%s'\n", deviceName.c_str());
 
-	printf("Using OpenCL Device '%s'\n", device.getInfo<CL_DEVICE_NAME>(&ec).c_str()); CHECK_EC(ec);
+	ctx = Context(device, nullptr, nullptr, nullptr, &ec);
+	CHECK_EC();
+
+	q = CommandQueue(ctx, device, QueueProperties::None, &ec);
+	CHECK_EC();
+
+	prog = Program(ctx, "__kernel void hello(__global char* string) { string[0] = 'H'; string[1] = 'e'; string[2] = 'l'; string[3] = 'l'; string[4] = 'o'; string[5] = ','; string[6] = ' '; string[7] = 'W'; string[8] = 'o'; string[9] = 'r'; string[10] = 'l'; string[11] = 'd'; string[12] = '!'; string[13] = '\\0'; }", false, &ec);
+	CHECK_EC();
+	ec = prog.build(device);
+	if (ec == CL_BUILD_PROGRAM_FAILURE)
+	{
+		BuildLogType log = prog.getBuildInfo<CL_PROGRAM_BUILD_LOG>(&ec);
+		CHECK_EC();
+		for (const auto& msg : log)
+			puts(msg.second.c_str());
+		EXIT();
+	}
+	CHECK_EC();
+
+	kernel = Kernel(prog, "hello", &ec);
+	CHECK_EC();
+
+	char str[16];
+	strMem = Buffer(ctx, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR, 16, (void *) str);
+	CHECK_EC();
+
+	ec = kernel.setArg(0, strMem);
+	CHECK_EC();
+
+
+	ec = q.flush();
+	CHECK_EC();
+	ec = q.finish();
+	CHECK_EC();
+
+	puts(str);
 }
 
 void Draw()
