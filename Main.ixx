@@ -46,7 +46,7 @@ void Init()
 	q = CommandQueue(ctx, device, QueueProperties::None, &ec);
 	CHECK_EC();
 
-	prog = Program(ctx, "__kernel void hello(__global char* string) { string[0] = 'H'; string[1] = 'e'; string[2] = 'l'; string[3] = 'l'; string[4] = 'o'; string[5] = ','; string[6] = ' '; string[7] = 'W'; string[8] = 'o'; string[9] = 'r'; string[10] = 'l'; string[11] = 'd'; string[12] = '!'; string[13] = '\\0'; }", false, &ec);
+	prog = Program(ctx, "__kernel void hello(__global char* string) { string[0] = 'H'; string[1] = 'e'; string[2] = 'l'; string[3] = 'l'; string[4] = 'o'; string[5] = ','; string[6] = ' '; string[7] = 'w'; string[8] = 'o'; string[9] = 'r'; string[10] = 'l'; string[11] = 'd'; string[12] = '!'; string[13] = '\\0'; }", false, &ec);
 	CHECK_EC();
 	ec = prog.build(device);
 	if (ec == CL_BUILD_PROGRAM_FAILURE)
@@ -62,13 +62,14 @@ void Init()
 	kernel = Kernel(prog, "hello", &ec);
 	CHECK_EC();
 
-	char str[16];
-	strMem = Buffer(ctx, CL_MEM_WRITE_ONLY | CL_MEM_USE_HOST_PTR, 16, (void *) str);
+	char str[16] = { "does not work"};
+	strMem = Buffer(ctx, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, sizeof(str), str, &ec);
 	CHECK_EC();
 
 	ec = kernel.setArg(0, strMem);
 	CHECK_EC();
 
+	q.enqueueNDRangeKernel(kernel, NullRange, NDRange(1));
 
 	ec = q.flush();
 	CHECK_EC();
