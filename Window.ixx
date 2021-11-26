@@ -1,4 +1,4 @@
-#pragma once
+export module Window;
 
 #include <Windows.h>
 #include <cstring>
@@ -12,13 +12,13 @@ HWND wnd;
 using uint = unsigned;
 
 template<typename T>
-void memset(T *ptr, T val, size_t len)
+void memset(T* ptr, T val, size_t len)
 {
 	for (size_t i = 0; i < len; i++)
 		ptr[i] = val;
 }
 
-uint *pixels;
+uint* pixels;
 HDC bmpDc;
 
 enum
@@ -36,13 +36,13 @@ LRESULT MyWndProc(HWND wnd, UINT msg, WPARAM wp, LPARAM lp)
 		ExitProcess(0);
 		break;
 
-	//case WM_PAINT:
-	//{
-	//	PAINTSTRUCT ps;
-	//	HDC dc = BeginPaint(wnd, &ps);
-	//	BitBlt(dc, 0, 0, width, height, bmpDc, 0, 0, SRCCOPY);
-	//	break;
-	//}
+		//case WM_PAINT:
+		//{
+		//	PAINTSTRUCT ps;
+		//	HDC dc = BeginPaint(wnd, &ps);
+		//	BitBlt(dc, 0, 0, width, height, bmpDc, 0, 0, SRCCOPY);
+		//	break;
+		//}
 
 	default:
 		return DefWindowProcW(wnd, msg, wp, lp);
@@ -61,7 +61,7 @@ void CheckMsg()
 	}
 }
 
-void Exit()
+export void Exit()
 {
 	CloseWindow(wnd);
 }
@@ -91,7 +91,7 @@ int main()
 	};
 
 	HDC dc = GetDC(wnd);
-	HBITMAP bmp = CreateDIBSection(dc, &bmpInfo, DIB_RGB_COLORS, (void **) &pixels, NULL, 0);
+	HBITMAP bmp = CreateDIBSection(dc, &bmpInfo, DIB_RGB_COLORS, (void**)&pixels, NULL, 0);
 	assert(bmp);
 	bmpDc = CreateCompatibleDC(dc);
 	assert(bmpDc);

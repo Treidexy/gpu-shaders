@@ -1,5 +1,5 @@
 #include <CL/opencl.hpp>
-#include "Window.h"
+import Window;
 
 using namespace cl;
 
