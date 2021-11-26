@@ -26,6 +26,7 @@ CommandQueue q;
 Program prog;
 Buffer pixelMem;
 Kernel background;
+Kernel stars;
 Kernel waves;
 
 string src;
@@ -88,6 +89,11 @@ void Init()
 		background = Kernel(prog, "background");
 		background.setArg(0, pixelMem);
 
+		stars = Kernel(prog, "stars");
+		stars.setArg(0, pixelMem);
+		stars.setArg(4, 0.0007f);
+		stars.setArg(5, 13.0f);
+
 		waves = Kernel(prog, "waves");
 		waves.setArg(0, pixelMem);
 		waves.setArg(4, 200.0f);
@@ -123,8 +129,12 @@ void Draw()
 {
 	try
 	{
+		float clockf = (float) clock();
+
 		Shader(background);
-		waves.setArg(3, (float) clock() * -0.0002f);
+		stars.setArg(3, cl_float2 { .x = clockf * -0.88f, .y = clockf / -8 });
+		Shader(stars);
+		waves.setArg(3, clockf * -0.0002f);
 		Shader(waves);
 	}
 	catch (const Error &e)

@@ -47,12 +47,46 @@ float3 __attribute__((overloadable)) lerp(float3 a, float3 b, float t) {
 	return a + t * (b - a);
 }
 
+uint hash(uint n) {
+	n ^= 2747636419;
+	n *= 2654435769;
+
+	n ^= n >> 16;
+	n *= 2654435769;
+
+	n ^= n >> 16;
+	n *= 2654435769;
+	return n;
+}
+
+float rand(float seed) {
+	float y = seed;
+	uint x = hash(*(uint *) &y);
+	return *(float *) &x;
+}
+
 kernel void background(global int *pixels, int xOff, int yOff) {
 	float y = get_global_id(0) + yOff;
 	float x = get_global_id(1) + xOff;
 	int i = y * width + x;
 
 	pixels[i] = color(lerp(x / width, 0.12, 0.5), lerp(y / height, 0.12, 0.5), 0.6);
+}
+
+kernel void stars(global int *pixels, int xOff, int yOff, float2 delta, float chance, float size) {
+	float y = get_global_id(0) + yOff;
+	float x = get_global_id(1) + xOff;
+	int i = y * width + x;
+
+	float2 pos = (float2) { x + delta.x, y + delta.y };
+	float2 localPos = fmod(pos, size);
+	float2 scaledPos = pos - localPos + 1.0f;
+	
+	float vx = rand(scaledPos.x);
+	float vy = rand(scaledPos.y);
+	if (vx + vy > 1) {
+		pixels[i] = 0xFFFFFF;
+	}
 }
 
 kernel void waves(global int *pixels, int xOff, int yOff, float time, float surface, float nWaves, float waveHeight, float4 surfCol, float4 botmCol) {
