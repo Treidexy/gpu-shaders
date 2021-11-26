@@ -79,7 +79,7 @@ void RenderThread()
 		Draw();
 
 		BitBlt(dc, 0, 0, width, height, bmpDc, 0, 0, SRCCOPY);
-		Sleep(30);
+		Sleep(3000);
 	}
 }
 

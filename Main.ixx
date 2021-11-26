@@ -96,8 +96,9 @@ void Init()
 
 		stars = Kernel(prog, "stars");
 		stars.setArg(0, pixelMem);
-		stars.setArg(4, 0x0FFFFFFF);
-		stars.setArg(5, 13.0f);
+		stars.setArg(3, (cl_uint) start % 1000);
+		stars.setArg(5, 0.007f);
+		stars.setArg(6, 13.0f);
 
 		waves = Kernel(prog, "waves");
 		waves.setArg(0, pixelMem);
@@ -137,10 +138,11 @@ void Draw()
 		float clockf = (float) clock();
 
 		Shader(background);
-		stars.setArg(3, cl_float2 { .x = clockf * -0.88f + start, .y = clockf / -8 + start });
+		stars.setArg(4, cl_float2 { .x = 0, .y = 0 });
+		//stars.setArg(4, cl_float2 { .x = clockf * -0.88f, .y = clockf / -8 });
 		Shader(stars);
 		waves.setArg(3, clockf * -0.0002f);
-		Shader(waves);
+		//Shader(waves);
 	}
 	catch (const Error &e)
 	{

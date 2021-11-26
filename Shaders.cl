@@ -47,16 +47,14 @@ float3 __attribute__((overloadable)) lerp(float3 a, float3 b, float t) {
 	return a + t * (b - a);
 }
 
-uint hash(uint n) {
-	n ^= 2747636419;
-	n *= 2654435769;
+constant float PHI = 1.61803398874989484820459;  // Φ = Golden Ratio   
 
-	n ^= n >> 16;
-	n *= 2654435769;
+float myFract(float x) {
+	return fmin(x - floor(x), 0x1.ffcp-1f);
+}
 
-	n ^= n >> 16;
-	n *= 2654435769;
-	return n;
+float goldNoise(float2 xy, float seed){
+  return myFract(tan(distance(xy*PHI, xy)*seed)*xy.x);
 }
 
 kernel void background(global int *pixels, int xOff, int yOff) {
@@ -67,36 +65,25 @@ kernel void background(global int *pixels, int xOff, int yOff) {
 	pixels[i] = color(lerp(x / width, 0.12, 0.5), lerp(y / height, 0.12, 0.5), 0.6);
 }
 
-kernel void stars(global int *pixels, int xOff, int yOff, float2 delta, uint chance, float size) {
+kernel void stars(global int *pixels, int xOff, int yOff, uint seed, float2 delta, float chance, float size) {
 	float y = get_global_id(0) + yOff;
 	float x = get_global_id(1) + xOff;
 	int i = y * width + x;
 	
-	float dx = width / 2 - x;
-	float dy = height / 2 - y;
-	float d = dx*dx*dx * dy*dy*dy;
-	float szo2 = (width + height) / 3.0f;
-	float szcubed = szo2 * szo2 * szo2;
-	if (fabs(d) < szcubed)
-		pixels[i] = 0xFFFFFF;
-	
-/*
 	float2 pos = (float2) { x + delta.x, y + delta.y };
 	float2 localPos = fmod(pos, size);
 	float2 scaledPos = pos - localPos + 1.0f;
 	
-	uint hx = hash(scaledPos.x);
-	uint hy = hash(scaledPos.y);
-	if (hx + hy < chance) {
-		float dx = size / 2.0f - localPos.x;
-		float dy = size / 2.0f - localPos.y;
-		float dist = (dx * dx * dx * dx * dy * dy * dy * dy);
-		float szo2 = size / 2.0f;
+	float v = goldNoise(scaledPos, PHI);
+	if (v <= chance) {
+		float dx = size / 2 - localPos.x;
+		float dy = size / 2 - localPos.y;
+		float d = dx*dx*dx * dy*dy*dy;
+		float szo2 = size / 3.0f;
 		float szcubed = szo2 * szo2 * szo2;
-		if (dist < szcubed)
+		if (fabs(d) < szcubed)
 			pixels[i] = 0xFFFFFF;
 	}
-*/
 }
 
 kernel void waves(global int *pixels, int xOff, int yOff, float time, float surface, float nWaves, float waveHeight, float4 surfCol, float4 botmCol) {
