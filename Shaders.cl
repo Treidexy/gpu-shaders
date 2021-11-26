@@ -1,16 +1,7 @@
-__kernel void hello(__global char* string) {
-	string[0] = 'H';
-	string[1] = 'e';
-	string[2] = 'l';
-	string[3] = 'l';
-	string[4] = 'o';
-	string[5] = ',';
-	string[6] = ' ';
-	string[7] = 'w';
-	string[8] = 'o';
-	string[9] = 'r';
-	string[10] = 'l';
-	string[11] = 'd';
-	string[12] = '!';
-	string[13] = '\0';
+constant int width = 600, height = 600;
+
+kernel void background(global int *pixels, int xOff, int yOff) {
+	int y = (int) get_global_id(0) + yOff;
+	int x = (int) get_global_id(1) + xOff;
+	pixels[y * width + x] += 0x010101;
 }

@@ -2,6 +2,8 @@
 #include <cstring>
 #include <cassert>
 
+import std.threading;
+
 extern void Init();
 extern void Draw();
 
@@ -18,10 +20,13 @@ void memset(T* ptr, T val, size_t len)
 		ptr[i] = val;
 }
 
-uint* pixels;
+export uint* pixels;
+HDC dc;
 HDC bmpDc;
+bool stay;
+bool alive;
 
-enum
+export enum
 {
 	width = 600,
 	height = 600,
@@ -33,7 +38,7 @@ LRESULT MyWndProc(HWND wnd, UINT msg, WPARAM wp, LPARAM lp)
 	{
 	case WM_CLOSE:
 	case WM_DESTROY:
-		ExitProcess(0);
+		alive = false;
 		break;
 
 		//case WM_PAINT:
@@ -63,7 +68,19 @@ void CheckMsg()
 
 export void Exit()
 {
-	CloseWindow(wnd);
+	alive = false;
+	stay = true;
+}
+
+void RenderThread()
+{
+	while (alive)
+	{
+		Draw();
+
+		BitBlt(dc, 0, 0, width, height, bmpDc, 0, 0, SRCCOPY);
+		Sleep(50);
+	}
 }
 
 extern "C" int main()
@@ -90,28 +107,30 @@ extern "C" int main()
 		}
 	};
 
-	HDC dc = GetDC(wnd);
+	dc = GetDC(wnd);
 	HBITMAP bmp = CreateDIBSection(dc, &bmpInfo, DIB_RGB_COLORS, (void**)&pixels, NULL, 0);
 	assert(bmp);
 	bmpDc = CreateCompatibleDC(dc);
 	assert(bmpDc);
 	SelectObject(bmpDc, bmp);
 
+	alive = true;
 	CheckMsg();
 	Init();
 
-	while (true)
-	{
+	std::thread renderThread(RenderThread);
+
+	while (alive)
 		CheckMsg();
-
-		Draw();
-
-		BitBlt(dc, 0, 0, width, height, bmpDc, 0, 0, SRCCOPY);
-		Sleep(50);
-	}
 
 	DeleteDC(bmpDc);
 	ReleaseDC(wnd, dc);
 	DestroyWindow(wnd);
 	UnregisterClassW(clazz.lpszClassName, NULL);
+
+	if (stay)
+		system("pause");
+
+	if (renderThread.joinable())
+		renderThread.join();
 }

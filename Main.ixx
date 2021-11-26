@@ -9,13 +9,23 @@ using namespace cl;
 #define EXIT() { Exit(); return; }
 inline const char *clGetErrorString(cl_int ec);
 
+enum
+{
+	xBatches = 10,
+	yBatches = 10,
+	nBatches = 10,
+
+	batchW = width / xBatches,
+	batchH = height / yBatches,
+};
+
 Platform platform;
 Device device;
 Context ctx;
 CommandQueue q;
 Program prog;
-Buffer strMem;
-Kernel kernel;
+Buffer pixelMem;
+Kernel background;
 
 string src;
 
@@ -28,7 +38,7 @@ string GetSrc(const char *file)
 		if (strerror_s(msg, err))
 			printf("can't open 'Shaders.cl': %s\n", msg);
 		else
-			printf("can't open 'Shaders.cl'");
+			printf("can't open 'Shaders.cl'\n");
 		return string {};
 	}
 
@@ -71,27 +81,39 @@ void Init()
 			EXIT();
 		}
 
-		char str[16] = { "does not work" };
-		strMem = Buffer(ctx, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, sizeof(str), str);
+		pixelMem = Buffer(ctx, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, (size_type) width * height * sizeof(int), pixels);
 
-		kernel = Kernel(prog, "hello");
-		kernel.setArg(0, strMem);
-
-		q.enqueueNDRangeKernel(kernel, NullRange, NDRange(1));
-
-		q.flush();
-		q.finish();
-
-		puts(str);
+		background = Kernel(prog, "background");
+		background.setArg(0, pixelMem);
 	}
 	catch (const Error &e)
 	{
-		printf("opencl err %s(): %s", e.what(), clGetErrorString(e.err()));
+		printf("opencl err %s(): %s\n", e.what(), clGetErrorString(e.err()));
+		EXIT();
 	}
 }
 
 void Draw()
 {
+	try
+	{
+		for (int yOff = 0; yOff < height; yOff += batchH)
+		{
+			background.setArg(2, yOff);
+			for (int xOff = 0; xOff < width; xOff += batchH)
+			{
+				background.setArg(1, xOff);
+				q.enqueueNDRangeKernel(background, NullRange, NDRange(batchW, batchH));
+				q.flush();
+				q.finish();
+			}
+		}
+	}
+	catch (const Error &e)
+	{
+		printf("opencl err %s(): %s\n", e.what(), clGetErrorString(e.err()));
+		EXIT();
+	}
 }
 
 inline const char* clGetErrorString(cl_int ec)
