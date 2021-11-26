@@ -1,5 +1,6 @@
 #define CL_HPP_ENABLE_EXCEPTIONS
 #include <CL/opencl.hpp>
+#include <ctime>
 #include <cstdio>
 #include <cerrno>
 import Window;
@@ -18,6 +19,8 @@ enum
 	batchW = width / xBatches,
 	batchH = height / yBatches,
 };
+
+time_t start;
 
 Platform platform;
 Device device;
@@ -55,6 +58,8 @@ string GetSrc(const char *file)
 
 void Init()
 {
+	start = time(nullptr);
+
 	try
 	{
 		Platform::get(&platform);
@@ -91,7 +96,7 @@ void Init()
 
 		stars = Kernel(prog, "stars");
 		stars.setArg(0, pixelMem);
-		stars.setArg(4, 0.0007f);
+		stars.setArg(4, 0x0FFFFFFF);
 		stars.setArg(5, 13.0f);
 
 		waves = Kernel(prog, "waves");
@@ -132,7 +137,7 @@ void Draw()
 		float clockf = (float) clock();
 
 		Shader(background);
-		stars.setArg(3, cl_float2 { .x = clockf * -0.88f, .y = clockf / -8 });
+		stars.setArg(3, cl_float2 { .x = clockf * -0.88f + start, .y = clockf / -8 + start });
 		Shader(stars);
 		waves.setArg(3, clockf * -0.0002f);
 		Shader(waves);
