@@ -26,6 +26,7 @@ CommandQueue q;
 Program prog;
 Buffer pixelMem;
 Kernel background;
+Kernel waves;
 
 string src;
 
@@ -46,6 +47,7 @@ string GetSrc(const char *file)
 	string src(ftell(fs), '\x69');
 	rewind(fs);
 	fread(src.data(), 1, src.length(), fs);
+	fclose(fs);
 
 	return std::move(src);
 }
@@ -85,6 +87,14 @@ void Init()
 
 		background = Kernel(prog, "background");
 		background.setArg(0, pixelMem);
+
+		waves = Kernel(prog, "waves");
+		waves.setArg(0, pixelMem);
+		waves.setArg(4, 200.0f);
+		waves.setArg(5, 30.0f);
+		waves.setArg(6, 7.5f);
+		waves.setArg(7, cl_float4 { .x = 0, .y = 0.78, .z = 1.0, .w = 0.4 });
+		waves.setArg(8, cl_float4 { .x = 0.2, .y = 0.12, .z = 0.3, .w = 1.6 });
 	}
 	catch (const Error &e)
 	{
@@ -93,21 +103,29 @@ void Init()
 	}
 }
 
+void Shader(Kernel kernel)
+{
+	for (int yOff = 0; yOff < height; yOff += batchH)
+	{
+		kernel.setArg(2, yOff);
+		for (int xOff = 0; xOff < width; xOff += batchH)
+		{
+			kernel.setArg(1, xOff);
+			q.enqueueNDRangeKernel(kernel, NullRange, NDRange(batchW, batchH));
+		}
+	}
+	
+	q.flush();
+	q.finish();
+}
+
 void Draw()
 {
 	try
 	{
-		for (int yOff = 0; yOff < height; yOff += batchH)
-		{
-			background.setArg(2, yOff);
-			for (int xOff = 0; xOff < width; xOff += batchH)
-			{
-				background.setArg(1, xOff);
-				q.enqueueNDRangeKernel(background, NullRange, NDRange(batchW, batchH));
-				q.flush();
-				q.finish();
-			}
-		}
+		Shader(background);
+		waves.setArg(3, (float) clock() * -0.0002f);
+		Shader(waves);
 	}
 	catch (const Error &e)
 	{
